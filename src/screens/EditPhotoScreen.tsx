@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
+import { makeVerifyCode } from '../datetime';
 import { useSettings } from '../SettingsContext';
 import TimeMarkCanvas from '../TimeMarkCanvas';
 
@@ -26,6 +27,7 @@ export default function EditPhotoScreen() {
       quality: 1,
     });
     if (!result.canceled && result.assets.length > 0) {
+      settings.setVerifyCode(makeVerifyCode());
       setImageUri(result.assets[0].uri);
     }
   }
@@ -55,8 +57,7 @@ export default function EditPhotoScreen() {
     name: settings.name,
     date: settings.getDisplayDate(),
     address: settings.getDisplayAddress(),
-    verifyCode: settings.verifyCode,
-    scale: 1.4,
+    verifyCode: settings.showVerifyCode ? settings.verifyCode : '',
   };
 
   return (

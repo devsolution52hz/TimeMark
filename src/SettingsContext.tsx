@@ -23,6 +23,8 @@ export type Settings = {
   // Mã xác minh
   verifyCode: string;
   setVerifyCode: (v: string) => void;
+  showVerifyCode: boolean; // true = in mã xác minh lên ảnh
+  setShowVerifyCode: (v: boolean) => void;
 
   // Tiện ích đọc giá trị đang dùng
   getDisplayDate: () => Date; // giờ đang dùng (thực hoặc custom)
@@ -41,6 +43,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [useCustomTime, setUseCustomTime] = useState(false);
   const [customDate, setCustomDate] = useState(new Date());
   const [verifyCode, setVerifyCode] = useState(makeVerifyCode());
+  const [showVerifyCode, setShowVerifyCode] = useState(true);
 
   const value = useMemo<Settings>(
     () => ({
@@ -58,6 +61,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       setCustomDate,
       verifyCode,
       setVerifyCode,
+      showVerifyCode,
+      setShowVerifyCode,
       getDisplayDate: () => (useCustomTime ? customDate : new Date()),
       getDisplayAddress: () => {
         if (autoAddress && gpsAddress) return gpsAddress;
@@ -72,6 +77,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       useCustomTime,
       customDate,
       verifyCode,
+      showVerifyCode,
     ]
   );
 

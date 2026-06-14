@@ -1,4 +1,5 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import * as MediaLibrary from 'expo-media-library';
 import React, { useEffect, useRef, useState } from 'react';
@@ -13,24 +14,32 @@ import {
   View,
 } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
+import { makeVerifyCode } from '../datetime';
 import { useSettings } from '../SettingsContext';
 import TimeMarkCanvas from '../TimeMarkCanvas';
 import TimeMarkOverlay from '../TimeMarkOverlay';
 
 type FlashState = 'off' | 'auto' | 'on' | 'torch';
 const FLASH_CYCLE: FlashState[] = ['off', 'auto', 'on', 'torch'];
-const FLASH_ICON: Record<FlashState, string> = {
-  off: '⚡ Tắt',
-  auto: '⚡ Auto',
-  on: '⚡ Bật',
-  torch: '🔦 Đèn',
-};
+const MAX_ZOOM_X = 10;
+// đổi hệ số phóng (1x..10x) ↔ giá trị zoom expo-camera (0..1)
+const xToZoom = (x: number) => (x - 1) / (MAX_ZOOM_X - 1);
+const zoomToX = (z: number) => 1 + z * (MAX_ZOOM_X - 1);
 
 const ZOOM_PRESETS = [
-  { label: '2×',   value: 0.25 },
-  { label: '1×',   value: 0.05 },
-  { label: '0.5×', value: 0 },
+  { label: '10x', value: 1 },
+  { label: '5x',  value: xToZoom(5) },
+  { label: '2x',  value: xToZoom(2) },
+  { label: '1x',  value: 0 },
 ];
+const INIT_ZOOM = ZOOM_PRESETS.length - 1; // 1x
+
+const FLASH_GLYPH: Record<FlashState, string> = {
+  off: '⚡',
+  auto: 'A⚡',
+  on: '⚡',
+  torch: '🔦',
+};
 
 export default function CameraScreen() {
   const settings = useSettings();
@@ -46,14 +55,15 @@ export default function CameraScreen() {
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [flash, setFlash] = useState<FlashState>('off');
-  const [zoom, setZoom] = useState(ZOOM_PRESETS[1].value);
-  const [zoomPreset, setZoomPreset] = useState(1);
+  const [zoom, setZoom] = useState(ZOOM_PRESETS[INIT_ZOOM].value);
+  const [zoomPreset, setZoomPreset] = useState(INIT_ZOOM);
   const [, setTick] = useState(0);
   const [shotUri, setShotUri] = useState<string | null>(null);
+  const [shotReady, setShotReady] = useState(false); // ảnh nền đã load xong chưa
   const [busy, setBusy] = useState(false);
   const [thumbUri, setThumbUri] = useState<string | null>(null);
 
-  const zoomRef = useRef(ZOOM_PRESETS[1].value);
+  const zoomRef = useRef(ZOOM_PRESETS[INIT_ZOOM].value);
   const lastDist = useRef<number | null>(null);
 
   // ─── Đồng bộ mediaPerm refs ───
@@ -118,10 +128,11 @@ export default function CameraScreen() {
       }
     };
 
-    // 200ms để canvas render xong trước khi captureRef
-    const t = setTimeout(doSave, 200);
+    // Chờ ảnh nền load xong (shotReady) rồi mới chụp; nếu onLoad không bắn thì fallback
+    const delay = shotReady ? 180 : 2000;
+    const t = setTimeout(doSave, delay);
     return () => { active = false; clearTimeout(t); };
-  }, [shotUri]);
+  }, [shotUri, shotReady]);
 
   // ─── Pinch-to-zoom ───
   const panResponder = useRef(
@@ -174,13 +185,39 @@ export default function CameraScreen() {
     name: settings.name,
     date: settings.getDisplayDate(),
     address: settings.getDisplayAddress(),
-    verifyCode: settings.verifyCode,
+    verifyCode: settings.showVerifyCode ? settings.verifyCode : '',
   };
+
+  async function pickFromLibrary() {
+    if (busy) return;
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Thiếu quyền', 'Cần quyền truy cập thư viện để chọn ảnh.');
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 1,
+      });
+      if (!res.canceled && res.assets?.[0]?.uri) {
+        settings.setVerifyCode(makeVerifyCode());
+        setBusy(true);
+        setShotReady(false);
+        setShotUri(res.assets[0].uri);
+        // auto-save effect sẽ đóng dấu TimeMark + lưu lại
+      }
+    } catch {
+      Alert.alert('Lỗi', 'Không mở được thư viện ảnh.');
+    }
+  }
 
   async function takePhoto() {
     if (!cameraRef.current || busy) return;
     try {
       setBusy(true);
+      settings.setVerifyCode(makeVerifyCode());
+      setShotReady(false);
       const photo = await cameraRef.current.takePictureAsync({ quality: 1 });
       setShotUri(photo?.uri ?? null);
       // busy giữ true — auto-save effect sẽ reset sau khi lưu xong
@@ -198,7 +235,8 @@ export default function CameraScreen() {
           <TimeMarkCanvas
             ref={canvasRef}
             imageUri={shotUri}
-            overlay={{ ...overlayProps, scale: 1.4 }}
+            overlay={overlayProps}
+            onImageLoad={() => setShotReady(true)}
           />
           {/* Overlay này nằm ngoài canvasRef nên không bị chụp vào ảnh */}
           <View style={styles.savingOverlay} pointerEvents="none">
@@ -230,49 +268,102 @@ export default function CameraScreen() {
 
         {/* Top bar */}
         <View style={styles.topBar}>
-          <Pressable
-            style={styles.topBtn}
-            onPress={() => setFlash((f) => FLASH_CYCLE[(FLASH_CYCLE.indexOf(f) + 1) % FLASH_CYCLE.length])}
-          >
-            <Text style={styles.topBtnText}>{FLASH_ICON[flash]}</Text>
+          <View style={styles.topSide}>
+            <Pressable style={styles.iconBtn} hitSlop={8}>
+              <Text style={styles.iconGlyph}>☰</Text>
+            </Pressable>
+            <Pressable
+              style={styles.iconBtn}
+              hitSlop={8}
+              onPress={() => setFlash((f) => FLASH_CYCLE[(FLASH_CYCLE.indexOf(f) + 1) % FLASH_CYCLE.length])}
+            >
+              <Text style={[styles.iconGlyph, flash !== 'off' && styles.iconGlyphActive]}>
+                {FLASH_GLYPH[flash]}
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.verifyPill}>
+            <Text style={styles.verifyPillIcon}>🛡</Text>
+            <Text style={styles.verifyPillText}>Xác minh ảnh</Text>
+          </View>
+
+          <View style={[styles.topSide, styles.topSideRight]}>
+            <Pressable style={styles.iconBtn} hitSlop={8}>
+              <Text style={styles.iconGlyph}>🎧</Text>
+            </Pressable>
+            <Pressable
+              style={styles.iconBtn}
+              hitSlop={8}
+              onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+            >
+              <Text style={styles.iconGlyph}>🔄</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Nút sửa nhanh bên phải watermark */}
+        <View style={styles.sideEdit}>
+          <Pressable style={styles.sideEditBtn} hitSlop={8}>
+            <Text style={styles.sideEditGlyph}>✎</Text>
           </Pressable>
-          <Pressable
-            style={styles.topBtn}
-            onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
-          >
-            <Text style={styles.topBtnText}>⟲</Text>
+          <Pressable style={styles.sideEditBtn} hitSlop={8}>
+            <Text style={styles.sideEditGlyph}>📍</Text>
           </Pressable>
         </View>
 
         {/* Preset zoom bên phải */}
         <View style={styles.zoomPresets}>
-          {ZOOM_PRESETS.map((p, i) => (
-            <Pressable
-              key={p.label}
-              style={[styles.zoomBtn, zoomPreset === i && styles.zoomBtnActive]}
-              onPress={() => applyPreset(i)}
-            >
-              <Text style={[styles.zoomBtnText, zoomPreset === i && styles.zoomBtnTextActive]}>
-                {p.label}
-              </Text>
-            </Pressable>
-          ))}
+          {zoomPreset === -1 && (
+            <View style={[styles.zoomBtn, styles.zoomBtnActive]}>
+              <Text style={styles.zoomBtnTextActive}>{zoomToX(zoom).toFixed(1)}x</Text>
+            </View>
+          )}
+          {ZOOM_PRESETS.map((p, i) => {
+            const active = zoomPreset === i;
+            return (
+              <Pressable
+                key={p.label}
+                style={[styles.zoomBtn, active && styles.zoomBtnActive]}
+                onPress={() => applyPreset(i)}
+              >
+                <Text style={[styles.zoomBtnText, active && styles.zoomBtnTextActive]}>
+                  {p.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
       {/* Thanh dưới */}
       <View style={styles.shutterBar}>
-        <View style={styles.thumbWrap}>
-          {thumbUri
-            ? <Image source={{ uri: thumbUri }} style={styles.thumbImg} />
-            : <View style={styles.thumbEmpty} />}
-        </View>
+        <Pressable style={styles.barItem} onPress={pickFromLibrary}>
+          <View style={styles.thumbWrap}>
+            {thumbUri
+              ? <Image source={{ uri: thumbUri }} style={styles.thumbImg} />
+              : <View style={styles.thumbEmpty} />}
+          </View>
+          <Text style={styles.barLabel}>Có sẵn</Text>
+        </Pressable>
+
+        <Pressable style={styles.barItem}>
+          <View style={styles.barIconBox}>
+            <Text style={styles.barIconGlyph}>🗂</Text>
+          </View>
+          <Text style={styles.barLabel}>Tệp</Text>
+        </Pressable>
 
         <Pressable style={styles.shutterOuter} onPress={takePhoto} disabled={busy}>
           <View style={styles.shutterInner} />
         </Pressable>
 
-        <View style={styles.thumbWrap} />
+        <Pressable style={styles.barItem}>
+          <View style={styles.barIconBox}>
+            <Text style={styles.barIconGlyph}>🗎</Text>
+          </View>
+          <Text style={styles.barLabel}>Bản mẫu</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -301,65 +392,112 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingHorizontal: 12,
     paddingBottom: 12,
   },
-  topBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.52)',
+  topSide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
   },
-  topBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  topSideRight: { justifyContent: 'flex-end' },
+  iconBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  iconGlyph: { color: '#fff', fontSize: 20, fontWeight: '600' },
+  iconGlyphActive: { color: '#F5A623' },
+
+  verifyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  verifyPillIcon: { fontSize: 13 },
+  verifyPillText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+  sideEdit: {
+    position: 'absolute',
+    right: 14,
+    bottom: '20%',
+    gap: 14,
+    alignItems: 'center',
+  },
+  sideEditBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(0,0,0,0.30)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  sideEditGlyph: { color: '#fff', fontSize: 18 },
 
   zoomPresets: {
     position: 'absolute',
-    right: 12,
-    top: '34%',
-    gap: 10,
+    right: 16,
+    top: '30%',
+    gap: 8,
     alignItems: 'center',
   },
   zoomBtn: {
-    width: 46, height: 46, borderRadius: 23,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.55)',
-    backgroundColor: 'rgba(0,0,0,0.38)',
+    width: 38, height: 38, borderRadius: 19,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.40)',
     alignItems: 'center', justifyContent: 'center',
   },
   zoomBtnActive: {
+    width: 48, height: 48, borderRadius: 24,
+    borderWidth: 2,
     borderColor: '#fff',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  zoomBtnText: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '600' },
-  zoomBtnTextActive: { color: '#fff', fontWeight: '800' },
+  zoomBtnText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700' },
+  zoomBtnTextActive: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
   shutterBar: {
-    height: 90,
+    height: 110,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 32,
+    justifyContent: 'space-around',
+    paddingHorizontal: 16,
     backgroundColor: '#000',
   },
-  thumbWrap: { width: 56, height: 56 },
-  thumbImg: {
-    width: 56, height: 56, borderRadius: 8,
+  barItem: { alignItems: 'center', justifyContent: 'center', width: 60, gap: 5 },
+  barLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
+  barIconBox: {
+    width: 46, height: 46, borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: 'rgba(255,255,255,0.45)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  barIconGlyph: { fontSize: 22 },
+  thumbWrap: { width: 46, height: 46 },
+  thumbImg: {
+    width: 46, height: 46, borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.45)',
   },
   thumbEmpty: {
-    width: 56, height: 56, borderRadius: 8,
+    width: 46, height: 46, borderRadius: 10,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.18)',
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   shutterOuter: {
-    width: 72, height: 72, borderRadius: 36,
-    borderWidth: 4, borderColor: '#fff',
+    width: 78, height: 78, borderRadius: 39,
+    borderWidth: 5, borderColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
   },
-  shutterInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff' },
+  shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#fff' },
 
   savingOverlay: {
     ...StyleSheet.absoluteFillObject,

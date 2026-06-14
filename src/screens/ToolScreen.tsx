@@ -33,7 +33,7 @@ export default function ToolScreen() {
           name={s.name}
           date={s.getDisplayDate()}
           address={s.getDisplayAddress()}
-          verifyCode={s.verifyCode}
+          verifyCode={s.showVerifyCode ? s.verifyCode : ''}
           scale={0.85}
         />
       </View>
@@ -122,20 +122,31 @@ export default function ToolScreen() {
 
       {/* Mã xác minh */}
       <Text style={styles.section}>Mã xác minh</Text>
-      <View style={styles.codeRow}>
-        <TextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
-          value={s.verifyCode}
-          onChangeText={s.setVerifyCode}
-          autoCapitalize="characters"
+      <Row label="Hiện mã trên ảnh">
+        <Switch
+          value={s.showVerifyCode}
+          onValueChange={s.setShowVerifyCode}
+          trackColor={{ true: '#F5A623' }}
         />
-        <Pressable
-          style={styles.codeBtn}
-          onPress={() => s.setVerifyCode(makeVerifyCode())}
-        >
-          <Text style={styles.codeBtnText}>Tạo mới</Text>
-        </Pressable>
-      </View>
+      </Row>
+      {s.showVerifyCode ? (
+        <View style={[styles.codeRow, { marginTop: 8 }]}>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            value={s.verifyCode}
+            onChangeText={s.setVerifyCode}
+            autoCapitalize="characters"
+          />
+          <Pressable
+            style={styles.codeBtn}
+            onPress={() => s.setVerifyCode(makeVerifyCode())}
+          >
+            <Text style={styles.codeBtnText}>Tạo mới</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Text style={styles.note}>Ảnh sẽ không in mã xác minh.</Text>
+      )}
     </ScrollView>
   );
 }
