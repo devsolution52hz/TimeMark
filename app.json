@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "TimeMarkApp",
+    "slug": "TimeMarkApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        { "cameraPermission": "Cho phép TimeMark dùng camera để chụp ảnh." }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Cho phép TimeMark dùng vị trí để đóng dấu toạ độ lên ảnh."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Cho phép TimeMark lưu ảnh vào thư viện.",
+          "savePhotosPermission": "Cho phép TimeMark lưu ảnh đã đóng dấu vào thư viện."
+        }
+      ],
+      [
+        "expo-image-picker",
+        { "photosPermission": "Cho phép TimeMark chọn ảnh từ thư viện để đóng dấu." }
+      ]
+    ]
+  }
+}
