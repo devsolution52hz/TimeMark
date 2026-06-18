@@ -1,6 +1,8 @@
+import { Oswald_400Regular } from '@expo-google-fonts/oswald';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { SettingsProvider } from './src/SettingsContext';
 import CameraScreen from './src/screens/CameraScreen';
@@ -19,6 +21,17 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export default function App() {
   const [tab, setTab] = useState<TabKey>('photo');
+
+  // Chỉ cụm giờ phút dùng Oswald — nạp trước khi render để không fallback ngầm khi đóng dấu ảnh.
+  const [fontsLoaded] = useFonts({ Oswald_400Regular });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={[styles.root, styles.center]}>
+        <ActivityIndicator color="#F5A623" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>
@@ -57,6 +70,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
+  center: { alignItems: 'center', justifyContent: 'center' },
   screen: { flex: 1 },
   tabBar: {
     flexDirection: 'row',

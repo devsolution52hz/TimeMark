@@ -5,7 +5,7 @@ import Svg, { Text as SvgText } from 'react-native-svg';
 import { formatDate, formatTime, formatWeekday } from './datetime';
 
 const AMBER = '#F5A623';
-const VERIFY_COLOR = 'rgba(255,255,255,0.6)';
+const VERIFY_COLOR = 'rgba(255,255,255,0.8)';
 
 export type OverlayProps = {
   name: string;
@@ -90,7 +90,7 @@ export default function TimeMarkOverlay({
       <View
         style={[
           styles.bottomLeft,
-          { paddingLeft: s(2.6), paddingRight: s(4), paddingTop: s(4), paddingBottom: s(2.4) },
+          { paddingLeft: s(2.6), paddingRight: s(4), paddingTop: s(4), paddingBottom: s(1.64) },
         ]}
       >
         <OutlinedName
@@ -107,20 +107,28 @@ export default function TimeMarkOverlay({
               styles.time,
               {
                 fontSize: s(12),
-                lineHeight: s(9.3),
+                lineHeight: s(12),
                 textShadowRadius: s(1),
                 textShadowOffset: { width: 0, height: s(0.3) },
+                // Bóp ngang ~78% cho dáng chữ thon cao (kiểu camera chấm công)
+                transform: [{ scaleX: 0.78 }],
+                transformOrigin: 'left',
               },
             ]}
           >
             {formatTime(date)}
           </Text>
-          <View style={[styles.divider, { height: s(8.9), marginHorizontal: s(2.4), width: s(0.7) }]} />
-          <View style={[styles.dateBlock, { height: s(8.9) }]}>
+          <View
+            style={[
+              styles.divider,
+              { height: s(9.4), marginLeft: -s(3.2), marginRight: s(2.4), width: s(0.7), marginTop: s(1.25) },
+            ]}
+          />
+          <View style={[styles.dateBlock, { gap: s(3.8), marginTop: s(1.25) }]}>
             <Text style={[styles.dateText, { fontSize: s(3.7), lineHeight: s(3.7), textShadowRadius: s(0.6) }]}>
               {formatDate(date)}
             </Text>
-            <Text style={[styles.dateText, { fontSize: s(3.7), lineHeight: s(3.7), textShadowRadius: s(0.6) }]}>
+            <Text style={[styles.dateText, { fontSize: s(3.7), lineHeight: s(3.7), textShadowRadius: s(0.6), marginTop: -s(0.5) }]}>
               {formatWeekday(date)}
             </Text>
           </View>
@@ -136,11 +144,11 @@ export default function TimeMarkOverlay({
 
       {/* Mã xác minh: dải dọc mảnh sát mép phải, đọc từ dưới lên */}
       {!!verifyCode && (
-        <View style={[styles.rightVertical, { width: s(4.4) }]}>
+        <View style={[styles.rightVertical, { width: s(4.4), transform: [{ translateY: s(12.7) }] }]}>
           <View style={[styles.verifyRow, { width: s(62) }]}>
             <MaterialCommunityIcons
               name="shield-check-outline"
-              size={s(2.7)}
+              size={s(2.0)}
               color={VERIFY_COLOR}
               style={{ marginRight: s(0.8) }}
             />
@@ -155,7 +163,7 @@ export default function TimeMarkOverlay({
       )}
 
       {/* Logo góc dưới-phải */}
-      <View style={[styles.logoBox, { right: s(2.4), bottom: s(2) }]}>
+      <View style={[styles.logoBox, { right: s(2.15), bottom: s(1.25) }]}>
         <Text
           style={[styles.logo, { fontSize: s(3.6) }]}
           onLayout={(e) => setLogoW(e.nativeEvent.layout.width)}
@@ -196,8 +204,7 @@ const styles = StyleSheet.create({
   },
   time: {
     color: '#fff',
-    fontFamily: 'sans-serif-condensed',
-    fontWeight: '400',
+    fontFamily: 'Oswald_400Regular',
     letterSpacing: 0.5,
     textShadowColor: 'rgba(0,0,0,0.5)',
     includeFontPadding: false,
@@ -205,10 +212,10 @@ const styles = StyleSheet.create({
   },
   divider: {
     backgroundColor: AMBER,
-    borderRadius: 2,
+    borderRadius: 0,
     alignSelf: 'center',
   },
-  dateBlock: { justifyContent: 'space-between', alignSelf: 'center' },
+  dateBlock: { justifyContent: 'center', alignSelf: 'center' },
   dateText: {
     color: '#fff',
     fontWeight: '500',

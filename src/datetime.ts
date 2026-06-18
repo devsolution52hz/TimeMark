@@ -1,13 +1,13 @@
 // Định dạng ngày giờ kiểu TimeMark (tiếng Việt)
 
 const WEEKDAYS_VI = [
-  'Chủ nhật',
-  'Thứ hai',
-  'Thứ ba',
-  'Thứ tư',
-  'Thứ năm',
-  'Thứ sáu',
-  'Thứ bảy',
+  'Chủ Nhật',
+  'Thứ Hai',
+  'Thứ Ba',
+  'Thứ Tư',
+  'Thứ Năm',
+  'Thứ Sáu',
+  'Thứ Bảy',
 ];
 
 const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
