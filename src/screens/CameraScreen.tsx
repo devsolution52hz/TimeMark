@@ -87,8 +87,14 @@ export default function CameraScreen() {
         const places = await Location.reverseGeocodeAsync(pos.coords);
         if (places.length > 0) {
           const p = places[0];
+          // Chỉ thêm "Đ. " khi tên đường CHƯA có sẵn "Đường"/"Đ." (tránh lặp "Đ. Đường ...")
+          let street: string | null = null;
+          if (p.street) {
+            const st = p.street.trim();
+            street = /^(đ\.|đường)\b/i.test(st) ? st : `Đ. ${st}`;
+          }
           const parts = [
-            p.street ? `Đ. ${p.street}` : null,
+            street,
             p.subregion || p.district || null,
             p.city || p.region || null,
           ].filter(Boolean);

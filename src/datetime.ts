@@ -17,6 +17,14 @@ export function formatTime(d: Date): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+export function formatHour(d: Date): string {
+  return pad(d.getHours());
+}
+
+export function formatMinute(d: Date): string {
+  return pad(d.getMinutes());
+}
+
 /** "13 Tháng 6,2026" */
 export function formatDate(d: Date): string {
   return `${d.getDate()} Tháng ${d.getMonth() + 1},${d.getFullYear()}`;
