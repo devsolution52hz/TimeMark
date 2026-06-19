@@ -5,7 +5,7 @@ import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import Svg, { Text as SvgText } from 'react-native-svg';
 import { formatDate, formatHour, formatMinute, formatWeekday } from './datetime';
 
-const AMBER = '#F5A623';
+const AMBER = '#FBC41C';
 
 export type OverlayProps = {
   name: string;
@@ -100,7 +100,7 @@ export default function TimeMarkOverlay({
 
         <View style={styles.timeRow}>
           {/* Số giờ: Oswald, bóp ngang transform scaleX:0.78 */}
-          <View style={[styles.hourPart, { width: hourFS * 0.78 * 1.05 }]}>
+          <View style={[styles.hourPart, { marginRight: -hourFS * 0.22 }]}>
              <Text
               style={[
                 styles.timeText,
@@ -111,19 +111,20 @@ export default function TimeMarkOverlay({
                   transformOrigin: 'left',
                 },
               ]}
+              numberOfLines={1}
             >
               {formatHour(date)}
             </Text>
           </View>
 
           {/* Dấu hai chấm tùy chỉnh (2 ô vuông trắng nhỏ xếp dọc) */}
-          <View style={[styles.colonWrap, { marginHorizontal: s(1.4) }]}>
-            <View style={[styles.colonDot, { width: s(1.45), height: s(1.45), borderRadius: s(0.3) }]} />
-            <View style={[styles.colonDot, { width: s(1.45), height: s(1.45), borderRadius: s(0.3), marginTop: s(1.4) }]} />
+          <View style={[styles.colonWrap, { marginHorizontal: s(0.8), transform: [{ translateY: s(3.25) }] }]}>
+            <View style={[styles.colonDot, { width: s(1.95), height: s(1.2), borderRadius: 0 }]} />
+            <View style={[styles.colonDot, { width: s(1.95), height: s(1.2), borderRadius: 0, marginTop: s(1.4) }]} />
           </View>
 
           {/* Số phút */}
-          <View style={[styles.hourPart, { width: hourFS * 0.78 * 1.05 }]}>
+          <View style={[styles.hourPart, { marginRight: -hourFS * 0.22 }]}>
              <Text
               style={[
                 styles.timeText,
@@ -134,20 +135,21 @@ export default function TimeMarkOverlay({
                   transformOrigin: 'left',
                 },
               ]}
+              numberOfLines={1}
             >
               {formatMinute(date)}
             </Text>
           </View>
 
           {/* Thanh phân cách dọc: nền #F5A623, vuông 2 đầu, cao bằng số */}
-          <View style={[styles.divider, { width: s(0.7), height: s(9.4), marginHorizontal: s(1.8) }]} />
+          <View style={[styles.divider, { width: s(0.5), height: s(10.5), marginHorizontal: s(1.8), marginTop: s(0.25) }]} />
 
           {/* Cột ngày: column, dòng trên "DD Tháng M,YYYY", dòng dưới weekday */}
           <View style={[styles.dateBlock, { height: s(9.4) }]}>
-            <Text style={[styles.dateText, { fontSize: dateFS, lineHeight: dateFS }]}>
+            <Text style={[styles.dateText, { fontSize: dateFS, lineHeight: dateFS, marginTop: -s(0.25) }]}>
               {formatDate(date)}
             </Text>
-            <Text style={[styles.dateText, { fontSize: dateFS, lineHeight: dateFS, marginTop: s(2.5) }]}>
+            <Text style={[styles.dateText, { fontSize: dateFS, lineHeight: dateFS, marginTop: s(3.5) }]}>
               {formatWeekday(date)}
             </Text>
           </View>

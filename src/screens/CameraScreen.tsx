@@ -270,7 +270,7 @@ export default function CameraScreen() {
         />
 
         <View style={styles.bottomScrim} pointerEvents="none" />
-        <TimeMarkOverlay {...overlayProps} verifyCode="" />
+        <TimeMarkOverlay {...overlayProps} />
 
         {/* Top bar */}
         <View style={styles.topBar}>
