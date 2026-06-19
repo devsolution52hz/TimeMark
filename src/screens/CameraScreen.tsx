@@ -77,8 +77,9 @@ export default function CameraScreen() {
     return () => clearInterval(id);
   }, [settings.useCustomTime]);
 
-  // ─── GPS reverse geocode ───
+  // ─── GPS reverse geocode (chỉ khi bật "Tự động lấy từ GPS") ───
   useEffect(() => {
+    if (!settings.autoAddress) return;
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -102,7 +103,7 @@ export default function CameraScreen() {
         }
       } catch { /* dùng địa chỉ thủ công */ }
     })();
-  }, []);
+  }, [settings.autoAddress]);
 
   // ─── AUTO-SAVE: phải đặt TRƯỚC mọi early return ───
   useEffect(() => {
@@ -192,6 +193,8 @@ export default function CameraScreen() {
     date: settings.getDisplayDate(),
     address: settings.getDisplayAddress(),
     verifyCode: settings.showVerifyCode ? settings.verifyCode : '',
+    nameTextColor: settings.getNameStyle().text,
+    nameOutlineColor: settings.getNameStyle().outline,
   };
 
   async function pickFromLibrary() {

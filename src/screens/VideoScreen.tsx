@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  PanResponder,
   PixelRatio,
   Pressable,
   StyleSheet,
@@ -19,6 +20,18 @@ import TimeMarkOverlay from '../TimeMarkOverlay';
 
 // Bề rộng (px) mong muốn cho ảnh overlay khi capture — native sẽ scale khớp video.
 const OVERLAY_TARGET_PX = 1080;
+
+// Zoom giống màn chụp ảnh: 1x..10x ↔ giá trị zoom expo-camera (0..1)
+const MAX_ZOOM_X = 10;
+const xToZoom = (x: number) => (x - 1) / (MAX_ZOOM_X - 1);
+const zoomToX = (z: number) => 1 + z * (MAX_ZOOM_X - 1);
+const ZOOM_PRESETS = [
+  { label: '10x', value: 1 },
+  { label: '5x',  value: xToZoom(5) },
+  { label: '2x',  value: xToZoom(2) },
+  { label: '1x',  value: 0 },
+];
+const INIT_ZOOM = ZOOM_PRESETS.length - 1; // 1x
 
 type Mode = 'record' | 'review';
 
@@ -45,6 +58,35 @@ export default function VideoScreen() {
   const [videoSize, setVideoSize] = useState<VideoSize | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Zoom (pinch + preset)
+  const [zoom, setZoom] = useState(ZOOM_PRESETS[INIT_ZOOM].value);
+  const [zoomPreset, setZoomPreset] = useState(INIT_ZOOM);
+  const zoomRef = useRef(ZOOM_PRESETS[INIT_ZOOM].value);
+  const lastDist = useRef<number | null>(null);
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (e) => e.nativeEvent.touches.length === 2,
+      onPanResponderMove: (e) => {
+        const t = e.nativeEvent.touches;
+        if (t.length === 2) {
+          const dx = t[0].pageX - t[1].pageX;
+          const dy = t[0].pageY - t[1].pageY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (lastDist.current != null) {
+            const delta = (dist - lastDist.current) / 250;
+            const z = Math.min(1, Math.max(0, zoomRef.current + delta));
+            zoomRef.current = z;
+            setZoom(z);
+            setZoomPreset(-1);
+          }
+          lastDist.current = dist;
+        }
+      },
+      onPanResponderRelease: () => { lastDist.current = null; },
+    })
+  ).current;
+
   // Player xem lại video gốc (chưa đóng dấu) ở chế độ review.
   const player = useVideoPlayer(null, (p) => { p.loop = true; });
 
@@ -69,6 +111,8 @@ export default function VideoScreen() {
     date: settings.getDisplayDate(),
     address: settings.getDisplayAddress(),
     verifyCode: settings.showVerifyCode ? settings.verifyCode : '',
+    nameTextColor: settings.getNameStyle().text,
+    nameOutlineColor: settings.getNameStyle().outline,
   };
 
   if (!camPerm) {
@@ -156,6 +200,13 @@ export default function VideoScreen() {
     }
   }
 
+  const applyPreset = (idx: number) => {
+    const z = ZOOM_PRESETS[idx].value;
+    zoomRef.current = z;
+    setZoom(z);
+    setZoomPreset(idx);
+  };
+
   // Kích thước (dp) khung capture overlay: giữ đúng tỉ lệ video, xuất ~OVERLAY_TARGET_PX px.
   const aspect = videoSize && videoSize.height > 0 ? videoSize.width / videoSize.height : 9 / 16;
   const capW = OVERLAY_TARGET_PX / PixelRatio.get();
@@ -164,15 +215,27 @@ export default function VideoScreen() {
   return (
     <View style={styles.container}>
       {mode === 'record' ? (
-        <View style={styles.fill}>
+        <View style={styles.fill} {...panResponder.panHandlers}>
           <CameraView
             ref={cameraRef}
             style={StyleSheet.absoluteFill}
             mode="video"
             facing={facing}
+            zoom={zoom}
           />
           <View style={styles.bottomScrim} pointerEvents="none" />
           <TimeMarkOverlay {...overlayProps} />
+
+          {/* Nút xoay cam — góc phải trên */}
+          {!recording && (
+            <Pressable
+              style={styles.flipTopRight}
+              hitSlop={8}
+              onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+            >
+              <Text style={styles.flipGlyph}>🔄</Text>
+            </Pressable>
+          )}
 
           {recording && (
             <View style={styles.timerPill}>
@@ -181,18 +244,30 @@ export default function VideoScreen() {
             </View>
           )}
 
-          <View style={styles.controls}>
-            <View style={styles.sideSlot}>
-              {!recording && (
+          {/* Preset zoom bên phải */}
+          <View style={styles.zoomPresets}>
+            {zoomPreset === -1 && (
+              <View style={[styles.zoomBtn, styles.zoomBtnActive]}>
+                <Text style={styles.zoomBtnTextActive}>{zoomToX(zoom).toFixed(1)}x</Text>
+              </View>
+            )}
+            {ZOOM_PRESETS.map((p, i) => {
+              const active = zoomPreset === i;
+              return (
                 <Pressable
-                  style={styles.flipBtn}
-                  onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+                  key={p.label}
+                  style={[styles.zoomBtn, active && styles.zoomBtnActive]}
+                  onPress={() => applyPreset(i)}
                 >
-                  <Text style={styles.flipGlyph}>🔄</Text>
+                  <Text style={[styles.zoomBtnText, active && styles.zoomBtnTextActive]}>
+                    {p.label}
+                  </Text>
                 </Pressable>
-              )}
-            </View>
+              );
+            })}
+          </View>
 
+          <View style={styles.controls}>
             <Pressable
               style={styles.recOuter}
               onPress={recording ? stopRec : startRec}
@@ -201,8 +276,6 @@ export default function VideoScreen() {
                 ? <View style={styles.recStop} />
                 : <View style={styles.recInner} />}
             </Pressable>
-
-            <View style={styles.sideSlot} />
           </View>
         </View>
       ) : (
@@ -296,16 +369,40 @@ const styles = StyleSheet.create({
     height: 130,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  sideSlot: { width: 56, alignItems: 'center', justifyContent: 'center' },
-  flipBtn: {
-    width: 48, height: 48, borderRadius: 24,
+  flipTopRight: {
+    position: 'absolute',
+    top: 14, right: 14,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center', justifyContent: 'center',
   },
   flipGlyph: { fontSize: 22 },
+
+  zoomPresets: {
+    position: 'absolute',
+    right: 16,
+    top: '34%',
+    gap: 8,
+    alignItems: 'center',
+  },
+  zoomBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.40)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  zoomBtnActive: {
+    width: 48, height: 48, borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#fff',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  zoomBtnText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700' },
+  zoomBtnTextActive: { color: '#fff', fontSize: 13, fontWeight: '800' },
   recOuter: {
     width: 78, height: 78, borderRadius: 39,
     borderWidth: 5, borderColor: '#fff',

@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { formatDate, formatTime, makeVerifyCode } from '../datetime';
-import { useSettings } from '../SettingsContext';
+import { NAME_STYLES, useSettings } from '../SettingsContext';
 import TimeMarkOverlay from '../TimeMarkOverlay';
 
 export default function ToolScreen() {
@@ -34,6 +34,8 @@ export default function ToolScreen() {
           date={s.getDisplayDate()}
           address={s.getDisplayAddress()}
           verifyCode={s.showVerifyCode ? s.verifyCode : ''}
+          nameTextColor={s.getNameStyle().text}
+          nameOutlineColor={s.getNameStyle().outline}
           scale={0.85}
         />
       </View>
@@ -94,6 +96,33 @@ export default function ToolScreen() {
         placeholder="Tên của bạn"
         placeholderTextColor="#666"
       />
+
+      <Text style={styles.subLabel}>Kiểu chữ tên</Text>
+      <View style={styles.swatchRow}>
+        {NAME_STYLES.map((st) => {
+          const active = s.nameStyleKey === st.key;
+          return (
+            <Pressable
+              key={st.key}
+              style={styles.swatchItem}
+              onPress={() => s.setNameStyleKey(st.key)}
+            >
+              <View
+                style={[
+                  styles.swatch,
+                  { backgroundColor: st.outline, borderColor: active ? '#fff' : '#333' },
+                  active && styles.swatchActive,
+                ]}
+              >
+                <Text style={[styles.swatchAa, { color: st.text }]}>Aa</Text>
+              </View>
+              <Text style={[styles.swatchLabel, active && styles.swatchLabelActive]}>
+                {st.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       {/* Địa chỉ */}
       <Text style={styles.section}>Địa chỉ</Text>
@@ -222,6 +251,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 4,
   },
+  subLabel: { color: '#aaa', fontSize: 13, marginTop: 12, marginBottom: 8 },
+  swatchRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  swatchItem: { alignItems: 'center', width: 52 },
+  swatch: {
+    width: 44, height: 44, borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  swatchActive: { borderWidth: 3 },
+  swatchAa: { fontSize: 16, fontWeight: '800' },
+  swatchLabel: { color: '#888', fontSize: 11, marginTop: 4, textAlign: 'center' },
+  swatchLabelActive: { color: '#fff', fontWeight: '700' },
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   codeBtn: {
     backgroundColor: '#2a2a2a',

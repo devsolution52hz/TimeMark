@@ -14,6 +14,10 @@ export type OverlayProps = {
   verifyCode: string;
   /** hệ số phóng to thêm (mặc định 1; preview có thể dùng 0.85) */
   scale?: number;
+  /** màu chữ tên (mặc định đen) */
+  nameTextColor?: string;
+  /** màu viền bao quanh tên (mặc định trắng) */
+  nameOutlineColor?: string;
 };
 
 /** Chữ đen viền trắng bằng SVG — mượt mà và đúng chất Timemark */
@@ -21,10 +25,14 @@ function OutlinedName({
   children,
   fontSize,
   outline,
+  textColor,
+  outlineColor,
 }: {
   children: string;
   fontSize: number;
   outline: number;
+  textColor: string;
+  outlineColor: string;
 }) {
   const text = children ?? '';
   // Tính toán kích thước SVG dựa trên text (ước lượng)
@@ -42,8 +50,8 @@ function OutlinedName({
           fontSize={fontSize}
           fontWeight="bold"
           fontFamily="sans-serif"
-          fill="#fff"
-          stroke="#fff"
+          fill={outlineColor}
+          stroke={outlineColor}
           strokeWidth={outline * 2.2}
           strokeLinejoin="round"
         >
@@ -55,7 +63,7 @@ function OutlinedName({
           fontSize={fontSize}
           fontWeight="bold"
           fontFamily="sans-serif"
-          fill="#000"
+          fill={textColor}
         >
           {text}
         </SvgText>
@@ -70,6 +78,8 @@ export default function TimeMarkOverlay({
   address,
   verifyCode,
   scale = 1,
+  nameTextColor = '#000',
+  nameOutlineColor = '#fff',
 }: OverlayProps) {
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
@@ -96,7 +106,14 @@ export default function TimeMarkOverlay({
 
       {/* A. Cụm góc dưới-trái (maxWidth 66%, neo bottom:0) */}
       <View style={[styles.bottomLeft, { paddingLeft: s(2.6), paddingBottom: s(3.2), transform: [{ translateY: 9 }] }]}>
-        <OutlinedName fontSize={s(4.7)} outline={s(0.6)}>{name}</OutlinedName>
+        <OutlinedName
+          fontSize={s(4.7)}
+          outline={s(0.6)}
+          textColor={nameTextColor}
+          outlineColor={nameOutlineColor}
+        >
+          {name}
+        </OutlinedName>
 
         <View style={styles.timeRow}>
           {/* Số giờ: Oswald, bóp ngang transform scaleX:0.78 */}

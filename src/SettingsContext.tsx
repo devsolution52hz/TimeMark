@@ -1,10 +1,24 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import { makeVerifyCode } from './datetime';
 
+// Các kiểu màu cho tên hiển thị: chữ + màu viền bao quanh.
+export type NameStyle = { key: string; label: string; text: string; outline: string };
+export const NAME_STYLES: NameStyle[] = [
+  { key: 'classic', label: 'Cổ điển',    text: '#000000', outline: '#FFFFFF' },
+  { key: 'red',     label: 'Đỏ',         text: '#FFFFFF', outline: '#E23B3B' },
+  { key: 'purple',  label: 'Tím',        text: '#FFFFFF', outline: '#8B43E6' },
+  { key: 'orange',  label: 'Vàng cam',   text: '#FFFFFF', outline: '#F5A623' },
+  { key: 'green',   label: 'Xanh lá',    text: '#FFFFFF', outline: '#22B14C' },
+  { key: 'blue',    label: 'Xanh dương', text: '#FFFFFF', outline: '#2D7FF9' },
+];
+
 export type Settings = {
   // Thông tin hiển thị trên dấu TimeMark
   name: string;
   setName: (v: string) => void;
+  nameStyleKey: string;
+  setNameStyleKey: (v: string) => void;
+  getNameStyle: () => NameStyle;
 
   // Địa chỉ
   manualAddress: string;
@@ -34,10 +48,9 @@ export type Settings = {
 const SettingsContext = createContext<Settings | null>(null);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [name, setName] = useState('Từ Thanh Hoài');
-  const [manualAddress, setManualAddress] = useState(
-    'Đ. Phú Thuận, Tân Mỹ, Hồ Chí Minh'
-  );
+  const [name, setName] = useState('');
+  const [nameStyleKey, setNameStyleKey] = useState('classic');
+  const [manualAddress, setManualAddress] = useState('');
   const [gpsAddress, setGpsAddress] = useState('');
   const [autoAddress, setAutoAddress] = useState(true);
   const [useCustomTime, setUseCustomTime] = useState(false);
@@ -49,6 +62,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     () => ({
       name,
       setName,
+      nameStyleKey,
+      setNameStyleKey,
+      getNameStyle: () =>
+        NAME_STYLES.find((x) => x.key === nameStyleKey) ?? NAME_STYLES[0],
       manualAddress,
       setManualAddress,
       gpsAddress,
@@ -71,6 +88,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       name,
+      nameStyleKey,
       manualAddress,
       gpsAddress,
       autoAddress,

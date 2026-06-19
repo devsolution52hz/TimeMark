@@ -58,6 +58,8 @@ export default function EditPhotoScreen() {
     date: settings.getDisplayDate(),
     address: settings.getDisplayAddress(),
     verifyCode: settings.showVerifyCode ? settings.verifyCode : '',
+    nameTextColor: settings.getNameStyle().text,
+    nameOutlineColor: settings.getNameStyle().outline,
   };
 
   return (
