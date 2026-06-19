@@ -53,7 +53,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Cho phép TimeMark dùng camera để chụp ảnh."
+          "cameraPermission": "Cho phép TimeMark dùng camera để chụp ảnh.",
+          "microphonePermission": "Cho phép TimeMark dùng micro để quay video."
         }
       ],
       [
@@ -74,7 +75,8 @@
         {
           "photosPermission": "Cho phép TimeMark chọn ảnh từ thư viện để đóng dấu."
         }
-      ]
+      ],
+      "expo-video"
     ]
   }
 }

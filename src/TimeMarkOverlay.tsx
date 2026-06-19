@@ -95,8 +95,8 @@ export default function TimeMarkOverlay({
       />
 
       {/* A. Cụm góc dưới-trái (maxWidth 66%, neo bottom:0) */}
-      <View style={[styles.bottomLeft, { paddingLeft: s(2.6), paddingBottom: s(3.2) }]}>
-        <OutlinedName fontSize={s(5.6)} outline={s(0.6)}>{name}</OutlinedName>
+      <View style={[styles.bottomLeft, { paddingLeft: s(2.6), paddingBottom: s(3.2), transform: [{ translateY: 9 }] }]}>
+        <OutlinedName fontSize={s(4.7)} outline={s(0.6)}>{name}</OutlinedName>
 
         <View style={styles.timeRow}>
           {/* Số giờ: Oswald, bóp ngang transform scaleX:0.78 */}
@@ -107,8 +107,8 @@ export default function TimeMarkOverlay({
                 {
                   fontSize: hourFS,
                   lineHeight: hourFS,
-                  transform: [{ scaleX: 0.78 }],
-                  transformOrigin: 'left',
+                  transform: [{ scaleX: 0.78 + 4 / (hourFS * 1.1) }, { scaleY: (hourFS + 2) / hourFS }],
+                  transformOrigin: 'left bottom',
                 },
               ]}
               numberOfLines={1}
@@ -118,9 +118,9 @@ export default function TimeMarkOverlay({
           </View>
 
           {/* Dấu hai chấm tùy chỉnh (2 ô vuông trắng nhỏ xếp dọc) */}
-          <View style={[styles.colonWrap, { marginHorizontal: s(0.8), transform: [{ translateY: s(3.25) }] }]}>
+          <View style={[styles.colonWrap, { marginHorizontal: 4, transform: [{ translateX: 1 }, { translateY: s(3.25) - 1 }] }]}>
             <View style={[styles.colonDot, { width: s(1.95), height: s(1.2), borderRadius: 0 }]} />
-            <View style={[styles.colonDot, { width: s(1.95), height: s(1.2), borderRadius: 0, marginTop: s(1.4) }]} />
+            <View style={[styles.colonDot, { width: s(1.95), height: s(1.2), borderRadius: 0, marginTop: s(1.4) + 4 }]} />
           </View>
 
           {/* Số phút */}
@@ -131,8 +131,8 @@ export default function TimeMarkOverlay({
                 {
                   fontSize: hourFS,
                   lineHeight: hourFS,
-                  transform: [{ scaleX: 0.78 }],
-                  transformOrigin: 'left',
+                  transform: [{ scaleX: 0.78 + 4 / (hourFS * 1.1) }, { scaleY: (hourFS + 2) / hourFS }],
+                  transformOrigin: 'left bottom',
                 },
               ]}
               numberOfLines={1}
@@ -142,14 +142,14 @@ export default function TimeMarkOverlay({
           </View>
 
           {/* Thanh phân cách dọc: nền #F5A623, vuông 2 đầu, cao bằng số */}
-          <View style={[styles.divider, { width: s(0.5), height: s(10.5), marginHorizontal: s(1.8), marginTop: s(0.25) }]} />
+          <View style={[styles.divider, { width: s(0.5), height: s(10.5), marginHorizontal: s(1.8), marginTop: s(0.25), transform: [{ translateX: 8 }] }]} />
 
           {/* Cột ngày: column, dòng trên "DD Tháng M,YYYY", dòng dưới weekday */}
-          <View style={[styles.dateBlock, { height: s(9.4) }]}>
-            <Text style={[styles.dateText, { fontSize: dateFS, lineHeight: dateFS, marginTop: -s(0.25) }]}>
+          <View style={[styles.dateBlock, { height: s(9.4), transform: [{ translateX: 6 }] }]}>
+            <Text style={[styles.dateText, { fontSize: dateFS, lineHeight: dateFS * 1.3, marginTop: -s(0.25), includeFontPadding: true }]}>
               {formatDate(date)}
             </Text>
-            <Text style={[styles.dateText, { fontSize: dateFS, lineHeight: dateFS, marginTop: s(3.5) }]}>
+            <Text style={[styles.dateText, { fontSize: dateFS, lineHeight: dateFS, marginTop: s(2.4) }]}>
               {formatWeekday(date)}
             </Text>
           </View>
@@ -169,13 +169,13 @@ export default function TimeMarkOverlay({
 
       {/* B. Cụm mã xác minh (Dải dọc mép phải): xoay -90deg */}
       {!!verifyCode && (
-        <View style={styles.rightVertical}>
+        <View style={[styles.rightVertical, { transform: [{ translateY: -15 }] }]}>
           <View style={[styles.verifyRow, { transform: [{ rotate: '-90deg' }] }]}>
             <MaterialCommunityIcons
               name="shield-check-outline"
               size={s(2.0)}
               color="rgba(255,255,255,0.8)"
-              style={{ marginRight: s(0.8) }}
+              style={{ marginRight: s(0.8), transform: [{ scaleX: (s(2.0) + 1) / s(2.0) }] }}
             />
             <Text style={[styles.verifyText, { fontSize: s(2.3) }]}>
               {verifyCode} Timemark Verified
@@ -185,13 +185,13 @@ export default function TimeMarkOverlay({
       )}
 
       {/* C. Logo góc dưới-phải: Time (cam) mark (trắng) + 100% Chân thực */}
-      <View style={[styles.logoBox, { right: s(2.4), bottom: s(2.8) }]}>
+      <View style={[styles.logoBox, { right: s(2.4), bottom: s(2.8), transform: [{ translateY: 9 }] }]}>
         <View
           style={styles.logoRow}
           onLayout={e => setLogoW(e.nativeEvent.layout.width)}
         >
           <Text style={[styles.logoText, { fontSize: s(3.6), color: AMBER }]}>Time</Text>
-          <Text style={[styles.logoText, { fontSize: s(3.6), color: '#fff' }]}>mark</Text>
+          <Text style={[styles.logoText, { fontSize: s(3.6), color: 'rgba(255,255,255,0.8)' }]}>mark</Text>
         </View>
         <Text
           style={[
@@ -251,16 +251,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dateText: {
-    color: '#fff',
-    fontWeight: '500', // Medium
+    color: '#FFFFFF',
+    fontWeight: '400', // Regular, dày hơn chút
     includeFontPadding: false,
   },
   address: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: '400',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 0.5 },
+    textShadowRadius: 1,
   },
   rightVertical: {
     position: 'absolute',
@@ -290,10 +290,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   logoText: {
-    fontWeight: '700',
+    fontWeight: '600',
   },
   logoSub: {
-    color: '#bfbfbf',
+    color: 'rgba(255,255,255,0.8)',
     fontWeight: '400',
   },
 });
